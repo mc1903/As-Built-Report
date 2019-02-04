@@ -1,0 +1,41 @@
+{
+    "Report": {
+        "Name": "VMware ESXi Host As Built Report",
+        "Version": "1.0",
+        "Status": "Released"
+    },
+    "Options": {
+        "ShowLicenses": false
+    },
+    "InfoLevel": {
+        "_comment_": "0 = Disabled, 1 = Summary, 2 = Informative, 3 = Detailed, 4 = Adv Detailed, 5 = Comprehensive",
+        "VMHost": 3,
+        "VM": 3
+    },
+    "HealthCheck": {
+        "VMHost": {
+            "ConnectionState": true,
+            "HyperThreading": true,
+            "ScratchLocation": true,
+            "IPv6Enabled": true,
+            "UpTimeDays": true,
+            "Licensing": true,
+            "Services": true,
+            "TimeConfig": true,
+            "LockdownMode": true
+        },
+        "Vsan": {},
+        "Datastore": {
+            "CapacityUtilization": true
+        },
+        "VM": {
+            "PoweredOn": true,
+            "CpuHotAddEnabled": true,
+            "CpuHotRemoveEnabled": true,
+            "MemoryHotAddEnabled": true,
+            "ChangeBlockTrackingEnabled": true,
+            "VMToolsOK": true,
+            "VMSnapshots": true
+        }
+    }
+}
