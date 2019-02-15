@@ -34,6 +34,9 @@
     The supported output formats are WORD, HTML, XML & TEXT.
     Multiple output formats may be specified, separated by a comma.
     By default, the output format will be set to WORD.
+.PARAMETER Orientation
+    Sets the report page orientation to Portrait or Landscape
+    By default, page orientation will be set to Portrait
 .PARAMETER StyleName
     Specifies the document style name of the report.
     This parameter is optional and does not have a default value.
@@ -109,6 +112,10 @@ Param(
     [ValidateNotNullOrEmpty()]
     [ValidateSet('Word', 'Html', 'Text', 'Xml')]
     [Array]$Format = 'Word',
+    [Parameter(Position = 6, Mandatory = $False, HelpMessage = 'Document page orientation')]
+    [ValidateNotNullOrEmpty()]
+    [ValidateSet('Portrait', 'Landscape')]
+    [String]$Orientation = 'Portrait',
     [Parameter(Mandatory = $False, HelpMessage = 'Please provide the custom style name')]
     [ValidateNotNullOrEmpty()] 
     [String]$StyleName,
@@ -132,17 +139,11 @@ Clear-Host
 # Check credentials have been supplied
 if ($Credentials -and (!($Username -and !($Password)))) {
 }
-<#
-Elseif (!($Credentials) -and ($Username -and !($Password))) {
-    # Convert specified Password to secure string
-    #$SecurePassword = ConvertTo-SecureString $Password -AsPlainText -Force
-    #$Credentials = New-Object System.Management.Automation.PSCredential ($Username, $SecurePassword)
-}#>
 Elseif (($Username -and $Password) -and !($Credentials)) {
     # Convert specified Password to secure string
     $SecurePassword = ConvertTo-SecureString $Password -AsPlainText -Force
     $Credentials = New-Object System.Management.Automation.PSCredential ($Username, $SecurePassword)
-}#>
+}
 Elseif (!$Credentials -and (!($Username -and !($Password)))) {
     Write-Error "Please supply credentials to connect to $target"
     Break
@@ -158,6 +159,7 @@ If (Test-Path $ReportConfigFile -ErrorAction SilentlyContinue) {
     $Status = $Report.Status
     $Options = $ReportConfig.Options
     $InfoLevel = $ReportConfig.InfoLevel
+    $Section = $ReportConfig.Section
     if ($Healthchecks) {
         $Healthcheck = $ReportConfig.HealthCheck
     }
