@@ -886,7 +886,6 @@ foreach ($UCS in $Target) {
                     }
                 }
 
-                <#
                 Section -Style Heading2 -Name 'Policies' {
         
                     Section -Style Heading3 -Name 'Maintenance Policies' {
@@ -924,9 +923,11 @@ foreach ($UCS in $Target) {
                                 'Reboot on BIOS Settings Change' = $BiosPolicy.RebootOnUpdate
                             }
                         }
-                        $UcsBiosPolicies | Table -Name 'BIOS Policies' 
+                        $UcsBiosPolicies | Table -Name 'BIOS Policies'
+                    } 
+                }
 
-                        Section -Style Heading4 -Name 'BIOS Policy Settings' {
+<#                        Section -Style Heading4 -Name 'BIOS Policy Settings' {
                             Get-UcsBiosPolicy | Get-UcsBiosVfQuietBoot | Sort-Object Dn | Select-Object @{L = 'Distinguished Name'; E = {$_.Dn}}, Vp* | Table -Name 'BIOS Policy VfQuietBoot'
                             BlankLine
                             Get-UcsBiosPolicy | Get-UcsBiosVfPOSTErrorPause | Sort-Object Dn | Select-Object @{L = 'Distinguished Name'; E = {$_.Dn}}, Vp* | Table -Name 'BIOS Policy VfPOSTErrorPause'
@@ -988,37 +989,89 @@ foreach ($UCS in $Target) {
                             Get-UcsBiosPolicy | Get-UcsBiosVfOSBootWatchdogTimer | Sort-Object Dn | Select-Object @{L = 'Distinguished Name'; E = {$_.Dn}}, Vp* | Table -Name 'BIOS Policy VfOSBootWatchdogTimer'
                             BlankLine
                         }
-                    }
-                }
-
+#>
                 Section -Style Heading2 -Name 'Pools' {
-
-                    Section -Style Heading3 -Name 'UUID Pools' {
-                        $UcsUuidSuffixPool = Get-UcsUuidSuffixPool | Select-Object @{L = 'Distinguished Name'; E = {$_.Dn}}, Name, AssignmentOrder, Prefix, Size, Assigned
-                        $UcsUuidSuffixPool | Table -Name 'UUID Pools' 
+                    #region UUID Pools
+                    $UcsUuidSuffixPool = Get-UcsUuidSuffixPool -Ucs $UCSM
+                    if ($UcsUuidSuffixPool) {
+                        Section -Style Heading3 -Name 'UUID Suffix Pools' {
+                            $UuidSuffixPool = foreach ($UuidPool in $UcsUuidSuffixPool) {
+                                $UcsUuidSuffixBlock = Get-UcsUuidSuffixBlock -UuidSuffixPool $UuidPool 
+                                [PSCustomObject]@{
+                                    'Name' = $UuidPool.Name
+                                    'Owner' = $UuidPool.PolicyOwner
+                                    'Description' = $UuidPool.Descr
+                                    'Size' = $UuidPool.Size
+                                    'Assigned' = $UuidPool.Assigned
+                                    'Assignment Order' = $UuidPool.AssignmentOrder
+                                }
+                                #if ($UcsUuidSuffixBlock) {
+                                #    Add-Member -InputObject $_ -MemberType NoteProperty -Name 'UUID Suffix Blocks' -Value ($UcsUuidSuffixBlock | foreach ("$($_.From) - $($_.To)")) -join [Environment]::NewLine
+                                #}
+                            }
+                            $UuidSuffixPool | Table -Name 'UUID Suffix Pools' 
+                        }
                     }
+                    #endregion UUID Pools
 
-                    Section -Style Heading3 -Name 'UUID Pool Blocks' {
-                        $UcsUuidSuffixBlock = Get-UcsUuidSuffixBlock | Select-Object @{L = 'Distinguished Name'; E = {$_.Dn}}, From, To
-                        $UcsUuidSuffixBlock | Table -Name 'UUID Pool Blocks' 
+                    #region UUID Pool Blocks
+                    $UcsUuidSuffixBlock = Get-UcsUuidSuffixBlock -Ucs $UCSM
+                    if ($UcsUuidSuffixBlock) {
+                        Section -Style Heading3 -Name 'UUID Pool Blocks' {
+                            $UuidSuffixBlock = foreach ($UuidBlock in $UcsUuidSuffixBlock) {
+                                [PSCustomObject]@{
+                                    'Name' = "$($UuidBlock.From) - $($UuidBlock.To)"
+                                    'From' = $UuidBlock.From
+                                    'To' = $UuidBlock.To
+                                }
+                            }
+                            $UuidSuffixBlock | Table -Name 'UUID Pool Blocks' 
+                        }
                     }
+                    #endregion UUID Pool Blocks
 
-                    Section -Style Heading3 -Name 'UUID Pool Assignments' {
-                        $UcsUuidpoolAddr = Get-UcsUuidpoolAddr | Where-Object {$_.Assigned -ne 'no'} | Select-Object AssignedToDn, Id | Sort-Object   AssignedToDn
-                        $UcsUuidpoolAddr | Table -Name 'UUID Pool Assignments' 
+                    #region UUID Suffixes
+                    $UcsUuidPoolAddr = Get-UcsUuidPoolAddr -Ucs $UCSM | Where-Object {$_.Assigned -eq 'yes'}
+                    if ($UcsUuidPoolAddr) {
+                        Section -Style Heading3 -Name 'UUID Suffixes' {
+                            $UuidPoolAddr = foreach ($UuidAddr in $UcsUuidPoolAddr) {
+                                [PSCustomObject]@{
+                                    'Name' = $UuidAddr.Id
+                                    'Owner' = $UuidAddr.Owner
+                                    'Assigned' = $UuidAddr.Assigned
+                                    'Assigned To' = $UuidAddr.AssignedToDn
+                                }
+                            }
+                            $UuidPoolAddr | Table -Name 'UUID Suffixes' 
+                        }
                     }
+                    #endregion UUID Suffixes
 
-                    Section -Style Heading3 -Name 'Server Pools' {
-                        $UcsServerPool = Get-UcsServerPool | Select-Object @{L = 'Distinguished Name'; E = {$_.Dn}}, Name, Assigned
-                        $UcsServerPool | Table -Name 'Server Pools' 
+                    #region Server Pools
+                    $UcsServerPool = Get-UcsServerPool -Ucs $UCSM
+                    if ($UcsServerPool) {
+                        Section -Style Heading3 -Name 'Server Pools' {
+                            $ServerPool = foreach ($Server in $UcsServerPool) {
+                                [PSCustomObject]@{
+                                    'Name' = $Server.Name
+                                    'Owner' = $Server.PolicyOwner
+                                    'Size' = $Server.Size
+                                    'Assigned' = $Server.Assigned
+                                    'Assignment Order' = $Server.AssignmentOrder
+                                }
+                            }
+                            $ServerPool | Table -Name 'Server Pools' 
+                        }
                     }
+                    #endregion Server Pools
 
+                    #region Server Pool Assignments
                     Section -Style Heading3 -Name 'Server Pool Assignments' {
                         $UcsComputePooledSlot = Get-UcsComputePooledSlot | Select-Object @{L = 'Distinguished Name'; E = {$_.Dn}}, Rn
                         $UcsComputePooledSlot | Table -Name 'Server Pool Assignments' 
                     }
+                    #endregion Server Pool Assignments
                 }
-                #>
             }
         }
         #endregion Servers Section
@@ -1406,10 +1459,9 @@ foreach ($UCS in $Target) {
                                     'Assigned' = $IpPool.Assigned
                                     'Assignment Order' = $IpPool.AssignmentOrder
                                 }
-                                if ($UcsIpPoolBlock) {
-                                    Add-Member -InputObject $_ -MemberType NoteProperty -Name 'IP Blocks' -Value 
-                                        ($UcsIpPoolBlock | foreach {"$($_.From) - $($_.To)"}) -join [Environment]::NewLine
-                                }
+                                #if ($UcsIpPoolBlock) {
+                                #    Add-Member -InputObject $_ -MemberType NoteProperty -Name 'IP Blocks' -Value ($UcsIpPoolBlock | foreach ("$($_.From) - $($_.To)")) -join [Environment]::NewLine
+                                #}
                             }
                             $IpPools | Sort-Object 'Name' | Table -Name 'IP Pools' 
                         }
@@ -1467,10 +1519,9 @@ foreach ($UCS in $Target) {
                                     'Assigned' = $MacPool.Assigned
                                     'Assignment Order' = $MacPool.AssignmentOrder
                                 }
-                                if ($UcsMacPoolBlock) {
-                                    Add-Member -InputObject $_ -MemberType NoteProperty -Name 'MAC Blocks' -Value 
-                                        ($UcsMacPoolBlock | foreach {"$($_.From) - $($_.To)"}) -join [Environment]::NewLine
-                                }
+                                #if ($UcsMacPoolBlock) {
+                                #    Add-Member -InputObject $_ -MemberType NoteProperty -Name 'MAC Blocks' -Value ($UcsMacPoolBlock | foreach ("$($_.From) - $($_.To)")) -join [Environment]::NewLine
+                                #}
                             }
                             $MacPools | Sort-Object 'Name' | Table -Name 'MAC Pools'
                         }
